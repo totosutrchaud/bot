@@ -36,11 +36,17 @@ DELETION_MESSAGE_TEMPLATE = (
 DISCORD_EPOCH = 1_420_070_400
 TOKEN_EPOCH = 1_293_840_000
 
-# Three parts delimited by dots: user ID, creation timestamp, HMAC.
+# Three parts delimited by dots for a non-MFA user token: user ID, creation timestamp, HMAC.
 # The HMAC isn't parsed further, but it's in the regex to ensure it at least exists in the string.
 # Each part only matches base64 URL-safe characters.
 # Padding has never been observed, but the padding character '=' is matched just in case.
-TOKEN_RE = re.compile(r"([\w\-=]+)\.([\w\-=]+)\.([\w\-=]+)", re.ASCII)
+# Multi Factor Authentication token for a user starts with any case for each character of the string "MFA".
+# After a single '.', the token then contains 84 alphabetical or numerical characters, including '-' and '='.
+TOKEN_RE = re.compile(
+    r"([\w\-=]+)\.([\w\-=]+)\.([\w\-=]+)"
+    r"|[mM][fF][aA].[\w\-=]{84}",
+    re.ASCII
+)
 
 
 class Token(t.NamedTuple):
