@@ -555,6 +555,9 @@ class URLs(metaclass=YAMLGetter):
     site_logs_view: str
     paste_service: str
 
+    # Cloudflare workers
+    unfurl_worker: str
+
 
 class Metabase(metaclass=YAMLGetter):
     section = "metabase"
