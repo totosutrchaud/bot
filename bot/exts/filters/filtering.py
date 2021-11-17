@@ -108,6 +108,17 @@ class Filtering(Cog):
                 ),
                 "schedule_deletion": False
             },
+            "filter_redirects": {
+                "enabled": Filter.filter_redirects,
+                "function": self._has_redirects,
+                "type": "filter",
+                "content_only": True,
+                "user_notification": Filter.notify_user_domains,
+                "notification_msg": (
+                    f"Your URL has been removed because it matched a blacklisted domain. {staff_mistake_str}"
+                ),
+                "schedule_deletion": True
+            },
             "filter_domains": {
                 "enabled": Filter.filter_domains,
                 "function": self._has_urls,
@@ -512,20 +523,38 @@ class Filtering(Cog):
 
         return False, None
 
-    async def _has_urls(self, text: str) -> Tuple[bool, Optional[str]]:
+    def _extract_url(self, text: str, blacklisted_urls: list[str]) -> Optional[tuple[str, str]]:
+        """Extract a URL from a message, and return the filer and match."""
+        text = self.clean_input(text)
+        for match in URL_RE.finditer(text):
+            for url in blacklisted_urls:
+                if url.lower() in match.group(1).lower():
+                    return url, match.group(1)
+        return None
+
+    async def _has_redirects(self, text: str) -> tuple[bool, Optional[str]]:
+        """
+        Returns True if the text contains a URL from the redirects blacklist.
+
+        Second return value is the match that tripped the filter.
+        """
+        url = self._extract_url(text, self._get_filterlist_items("redirect", allowed=False))
+        if url is None:
+            return False, None
+        else:
+            return True, url[1]
+
+    async def _has_urls(self, text: str) -> tuple[bool, Optional[str]]:
         """
         Returns True if the text contains one of the blacklisted URLs from the config file.
 
         Second return value is a reason of URL blacklisting (can be None).
         """
-        text = self.clean_input(text)
-
-        domain_blacklist = self._get_filterlist_items("domain_name", allowed=False)
-        for match in URL_RE.finditer(text):
-            for url in domain_blacklist:
-                if url.lower() in match.group(1).lower():
-                    return True, self._get_filterlist_value("domain_name", url, allowed=False)["comment"]
-        return False, None
+        url = self._extract_url(text, self._get_filterlist_items("domain_name", allowed=False))
+        if url is None:
+            return False, None
+        else:
+            return True, self._get_filterlist_value("domain_name", url[0], allowed=False)["comment"]
 
     @staticmethod
     async def _has_zalgo(text: str) -> bool:
