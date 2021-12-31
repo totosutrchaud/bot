@@ -214,7 +214,7 @@ def respect_role_hierarchy(member_arg: function.Argument) -> t.Callable:
                 )
             else:
                 log.trace(f"{func.__name__}: {target.top_role=} < {actor.top_role=}; calling func")
-                await func(*args, **kwargs)
+                return await func(*args, **kwargs)
         return wrapper
     return decorator
 
